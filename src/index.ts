@@ -1,6 +1,8 @@
-import { httpServer } from './http_server/index.js';
+import { HTTP_PORT } from './config/config.js';
+import { httpServer } from './servers/httpServer.js';
+import { WsServer } from './servers/wsServer.js';
 
-const HTTP_PORT = 8181;
+new WsServer({ server: httpServer });
 
 console.log(`Start static http server on the ${HTTP_PORT} port!`);
 httpServer.listen(HTTP_PORT);
