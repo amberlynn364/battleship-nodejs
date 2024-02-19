@@ -13,6 +13,7 @@
 	"license": "ISC",
 	"devDependencies": {
 		"@types/node": "^20.11.17",
+		"@types/ws": "^8.5.10",
 		"@typescript-eslint/eslint-plugin": "^6.21.0",
 		"cross-env": "^7.0.3",
 		"dotenv": "^16.4.1",
