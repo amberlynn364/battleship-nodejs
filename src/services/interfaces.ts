@@ -1,0 +1,28 @@
+import { type DataBase } from '../db/database.js';
+
+export interface Player {
+  id: number;
+  name: string;
+  password: string;
+  wins: number;
+}
+
+export interface Room {
+  id: number;
+  playerID: Player['id'];
+  playerName: Player['name'];
+}
+
+export type LoginData = Pick<Player, 'name' | 'password'>;
+
+export interface Ship {
+  position: string;
+  direction: boolean;
+  length: number;
+  type: string;
+}
+
+export interface GameServiceDeps {
+  playersDB: DataBase<Player>;
+  roomsDB: DataBase<Room>;
+}
