@@ -1,7 +1,26 @@
-import { type WsContext, type WsMessage, type WsController } from '../servers/interfaces.js';
 import { type GameService } from '../services/GameService.js';
-import { type LoginPayLoad, type AppDeps, WsCommand, type CommandFunction } from './interfaces.js';
-import { regMessage, updateRoomMessage, updateWinnersMessage } from './messages.js';
+import { type WsContext, type WsMessage, type WsController } from '../servers/interfaces.js';
+import {
+  type LoginPayLoad,
+  type AppDeps,
+  WsCommand,
+  type AddUserToRoomPayload,
+  type CommandFunction,
+  type AddShipsPayload,
+  type AttackPayload,
+} from './interfaces.js';
+import {
+  regMessage,
+  updateRoomMessage,
+  updateWinnersMessage,
+  createGameMessage,
+  startGameMessage,
+  turnMessage,
+  attackResultMessage,
+  finishMessage,
+} from './messages.js';
+import { type Ship } from '../game/ship.js';
+import { type ShipData } from '../services/interfaces.js';
 
 export class App implements WsController {
   private readonly gameService: GameService;
@@ -20,12 +39,12 @@ export class App implements WsController {
     this.gameService = gameService;
   }
 
-  public handleMessage({ type, data }: WsMessage, context: WsContext): void {
+  public handleMessage = ({ type, data }: WsMessage, context: WsContext): void => {
     const isValidCommand = (this.wsCommands as string[]).includes(type);
     if (!isValidCommand) throw new Error(`Invalid message type: ${type}`);
     const command = this[type as keyof this] as CommandFunction;
     command.call(this, data, context);
-  }
+  };
 
   public handleClose(context: WsContext): void {}
 
@@ -49,13 +68,79 @@ export class App implements WsController {
 
   public single_play() {}
 
-  public create_room() {}
+  public create_room(_: unknown, context: WsContext): void {
+    this.gameService.createRoom(context.id);
 
-  public add_user_to_room() {}
+    const rooms = this.gameService.getRooms();
+    context.broadcast(updateRoomMessage(rooms));
+  }
 
-  public add_ships() {}
+  public add_user_to_room(data: unknown, context: WsContext): void {
+    const { indexRoom } = data as AddUserToRoomPayload;
 
-  public attack() {}
+    const game = this.gameService.joinToRoom(indexRoom, context.id);
+    if (!game) return;
 
-  public randomAttack() {}
+    game.gamePlayers.forEach((playerID) => {
+      context.broadcast(createGameMessage(game.gameID, playerID), playerID);
+    });
+
+    const rooms = this.gameService.getRooms();
+    context.broadcast(updateRoomMessage(rooms));
+  }
+
+  // TODO: add bot Attack
+  public add_ships(data: unknown, context: WsContext): void {
+    const { gameId, ships, indexPlayer } = data as AddShipsPayload;
+
+    const game = this.gameService.addShips(gameId, indexPlayer, ships);
+    if (!game) throw new Error('Game not found');
+    const { currentPlayer, currentShip, enemyPlayer, enemyShip } = game;
+    const startGameMessageArr = [
+      { player: currentPlayer, ship: currentShip },
+      { player: enemyPlayer, ship: enemyShip },
+    ];
+    startGameMessageArr.map(({ player, ship }) => {
+      context.broadcast(
+        startGameMessage(
+          player,
+          ship.map((item) => this.getShipData(item))
+        ),
+        player
+      );
+      return undefined;
+    });
+
+    context.broadcast(turnMessage(currentPlayer), [currentPlayer, enemyPlayer]);
+  }
+
+  // TODO: add bot Attack
+  public attack(data: unknown, context: WsContext): void {
+    const { gameId, x, y, indexPlayer } = data as AttackPayload;
+
+    const position = x === undefined || y === undefined ? undefined : { x, y };
+    const { game, results } = this.gameService.attack(gameId, indexPlayer, position);
+    // console.log('results', results, 'game', game);
+    context.broadcast(attackResultMessage(results), game.gamePlayers);
+    context.broadcast(turnMessage(game.currentPlayer), game.gamePlayers);
+
+    if (!game.gameWinner) return undefined;
+    context.broadcast(finishMessage(game.gameWinner), game.gamePlayers);
+
+    return undefined;
+  }
+
+  public randomAttack(data: unknown, context: WsContext): void {
+    this.attack(data, context);
+  }
+
+  private getShipData({ shipPosition, shipLength, shipIsVertical }: Ship): ShipData {
+    const shipType = ['small', 'medium', 'large', 'huge'][shipLength - 1] ?? 'unknown';
+    return {
+      position: shipPosition,
+      length: shipLength,
+      direction: shipIsVertical,
+      type: shipType,
+    };
+  }
 }

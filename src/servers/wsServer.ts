@@ -20,7 +20,7 @@ export class WsServer extends WebSocketServer {
       const messages = Array.isArray(message) ? message : [message];
       messages.forEach((msg) => {
         const rawMessage = stringifyMessage(msg);
-        console.log(rawMessage);
+        console.log('-->', rawMessage);
 
         let clients;
         if (contextID === undefined) {
@@ -59,7 +59,7 @@ export class WsServer extends WebSocketServer {
 
   private readonly onConnectionMessage = (context: WsContext) => (rawMessage: RawData) => {
     try {
-      console.log(String(rawMessage));
+      console.log('<--', String(rawMessage));
       const message = parseMessage(rawMessage);
       this.controller.handleMessage(message, context);
     } catch (error) {

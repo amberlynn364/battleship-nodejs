@@ -22,6 +22,7 @@
   },
   "rules": {
     "prettier/prettier": "error",
+    "class-methods-use-this": "off",
     "no-new": "off",
     "import/prefer-default-export": "off",
     "no-console": "off",
