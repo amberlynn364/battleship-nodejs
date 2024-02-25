@@ -40,3 +40,8 @@ export interface gameServiceAttackPayload {
   game: Game;
   results: AttackResult[];
 }
+
+export interface LogoutPayload {
+  closedGames: Game[];
+  closeRooms: Array<Room | null>;
+}

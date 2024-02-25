@@ -11,6 +11,7 @@ import {
   type LoginData,
   type ShipData,
   type gameServiceAttackPayload,
+  type LogoutPayload,
 } from './interfaces.js';
 
 export class GameService {
@@ -43,6 +44,22 @@ export class GameService {
     }
     this.playersDB.updateData(player.id, { id });
     return player;
+  }
+
+  public logout(playerID: Player['id']): LogoutPayload {
+    const rooms = this.roomsDB.findItemsInDataByField('playerID', playerID);
+    const closeRooms = rooms.map((room) => this.roomsDB.deleteData(room.id));
+
+    const closedGames: Game[] = [];
+    this.games.forEach((game) => {
+      if (game.gamePlayers.includes(playerID)) {
+        game.giveUp(playerID);
+        this.closeFinishedGame(game);
+        closedGames.push(game);
+      }
+    });
+
+    return { closedGames, closeRooms };
   }
 
   public getWinners(): Player[] {

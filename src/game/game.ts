@@ -123,6 +123,11 @@ export class Game {
     ];
   }
 
+  public giveUp(player: number): void {
+    if (!this.players.includes(player)) throw new Error('Wrong player');
+    this.winner = player === this.currentPlayer ? this.enemyPlayer : this.currentPlayer;
+  }
+
   private get enemyIndex(): number {
     return (this.currentIndex + 1) % 2;
   }

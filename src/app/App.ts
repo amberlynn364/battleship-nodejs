@@ -46,7 +46,23 @@ export class App implements WsController {
     command.call(this, data, context);
   };
 
-  public handleClose(context: WsContext): void {}
+  public handleClose(context: WsContext): void {
+    const { closeRooms, closedGames } = this.gameService.logout(context.id);
+    if (closeRooms.length) {
+      const rooms = this.gameService.getRooms();
+      context.broadcast(updateRoomMessage(rooms));
+    }
+    closedGames.forEach((game) => {
+      const { gameWinner, gamePlayers } = game;
+      if (gameWinner) {
+        context.broadcast(finishMessage(gameWinner), gamePlayers);
+      }
+    });
+    if (closedGames.length) {
+      const winners = this.gameService.getWinners();
+      context.broadcast(updateWinnersMessage(winners));
+    }
+  }
 
   public reg(data: unknown, context: WsContext): void {
     const loginPayLoad = data as LoginPayLoad;
@@ -120,7 +136,6 @@ export class App implements WsController {
 
     const position = x === undefined || y === undefined ? undefined : { x, y };
     const { game, results } = this.gameService.attack(gameId, indexPlayer, position);
-    // console.log('results', results, 'game', game);
     context.broadcast(attackResultMessage(results), game.gamePlayers);
     context.broadcast(turnMessage(game.currentPlayer), game.gamePlayers);
 
