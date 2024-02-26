@@ -26,6 +26,12 @@ export class Board<T> {
     return undefined;
   }
 
+  public setValues(positions: Position[], value: T | null): void {
+    positions.forEach((pos) => {
+      this.setValue(pos, value);
+    });
+  }
+
   public isFieldInsideBoard({ x, y }: Position): boolean {
     return x >= 0 && x < this.boardSize && y >= 0 && y < this.boardSize;
   }
@@ -36,6 +42,10 @@ export class Board<T> {
 
   public isEmptyPosition(position: Position): boolean {
     return this.getValue(position) === null;
+  }
+
+  public isAllEmptyPositions(positions: Position[]): boolean {
+    return positions.every((pos) => this.isEmptyPosition(pos));
   }
 
   public getEmptyPositions(): Position[] {

@@ -1,3 +1,4 @@
+import { BOT_ID } from '../config/config.js';
 import { type DataBase } from '../db/database.js';
 import { Game } from '../game/game.js';
 import { GameStatus, type Position } from '../game/interfaces.js';
@@ -72,6 +73,18 @@ export class GameService {
     return Array.from(this.roomsDB.findAllData());
   }
 
+  public startSinglePlayer(playerID: Player['id']): Game {
+    const player = this.playersDB.findDataByID(playerID);
+    if (!player) throw new Error('Player not found!');
+    const roomsToDelete = this.roomsDB.findItemsInDataByField('playerID', playerID);
+    roomsToDelete.forEach(({ id }) => this.roomsDB.deleteData(id));
+
+    const game = new Game([BOT_ID, playerID]);
+    this.games.set(game.gameID, game);
+    game.setBotShips(BOT_ID);
+    return game;
+  }
+
   public createRoom(playerID: Player['id']): Room {
     const player = this.playersDB.findDataByID(playerID);
     if (!player) throw new Error('Player not found');
@@ -121,17 +134,15 @@ export class GameService {
     if (!game) throw new Error('Game not found');
 
     const results = game.attack(playerID, position);
-    // console.log('results', results, 'game', game);
-
     if (game.gameStatus === GameStatus.Finished) this.closeFinishedGame(game);
 
     return { game, results };
   }
 
-  // TODO add BOTID
   private closeFinishedGame(game: Game): boolean {
     if (!game.gameWinner) return false;
     this.games.delete(game.gameID);
+    if (game.gameWinner === BOT_ID) return true;
     const winner = this.playersDB.findDataByID(game.gameWinner);
     this.playersDB.updateData(game.gameWinner, winner ? { wins: winner.wins + 1 } : {});
     return true;

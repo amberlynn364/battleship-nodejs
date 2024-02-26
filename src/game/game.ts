@@ -1,8 +1,10 @@
-import { BOARD_SIZE } from '../config/config.js';
+/* eslint-disable no-cond-assign */
+/* eslint-disable no-param-reassign */
+import { BOARD_SIZE, SHIPS_SET } from '../config/config.js';
 import { randomID } from '../utils/randomID.js';
 import { Board } from './board.js';
 import { type AttackResult, GameStatus, type Position, AttackStatus } from './interfaces.js';
-import { type Ship } from './ship.js';
+import { Ship } from './ship.js';
 
 export class Game {
   private readonly id: number;
@@ -65,6 +67,18 @@ export class Game {
     if (this.ships[playerIndex].length) throw new Error('Ship already placed');
     this.ships[playerIndex] = ships;
     this.currentIndex = Math.round(Math.random());
+  }
+
+  public setBotShips(player: number, shipsLength = SHIPS_SET): void {
+    const board = new Board<boolean>(this.currentBoard.size);
+    const isVertical = Math.random() > 0.5;
+    const ships = shipsLength.map((length) => {
+      const ship = new Ship({ x: 0, y: 0 }, length, isVertical);
+      if (!this.setShipsRandomly(board, ship)) throw new Error('Ship placement failed');
+      board.setValues([...ship.shipPositions, ...ship.shipAroundPositions], true);
+      return ship;
+    });
+    this.setShips(player, ships);
   }
 
   public attack(player: number, pos?: Position): AttackResult[] {
@@ -159,5 +173,34 @@ export class Game {
 
   private getPlayerIndex(player: number): number {
     return this.players.findIndex((item) => item === player);
+  }
+
+  private setShipsRandomly(board: Board<boolean>, ship: Ship): boolean {
+    let position: Position | null;
+
+    const tryPlacingShip = (isVertical: boolean): boolean => {
+      ship.shipIsVertical = isVertical;
+      if (board.isAllEmptyPositions(ship.shipPositions)) return true;
+      return false;
+    };
+
+    while ((position = board.getRandomEmptyPosition())) {
+      ship.shipPosition = position;
+
+      if (tryPlacingShip(ship.shipIsVertical)) return true;
+      if (tryPlacingShip(!ship.shipIsVertical)) return true;
+    }
+
+    return false;
+    //   let position: Position | null;
+
+    //   while ((position = board.getRandomEmptyPosition())) {
+    //     ship.shipPosition = position;
+    //     if (board.isAllEmptyPositions(ship.shipPositions)) return true;
+    //     ship.shipIsVertical = !ship.shipIsVertical;
+    //     if (board.isAllEmptyPositions(ship.shipPositions)) return true;
+    //   }
+    //   return false;
+    // }
   }
 }

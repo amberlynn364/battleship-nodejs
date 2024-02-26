@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import { type GameService } from '../services/GameService.js';
 import { type WsContext, type WsMessage, type WsController } from '../servers/interfaces.js';
 import {
@@ -21,6 +22,9 @@ import {
 } from './messages.js';
 import { type Ship } from '../game/ship.js';
 import { type ShipData } from '../services/interfaces.js';
+import { type Game } from '../game/game.js';
+import { BOT_ID, BOT_MAX_TIMEOUT, BOT_MIN_TIMEOUT } from '../config/config.js';
+import { GameStatus } from '../game/interfaces.js';
 
 export class App implements WsController {
   private readonly gameService: GameService;
@@ -82,7 +86,14 @@ export class App implements WsController {
     }
   }
 
-  public single_play() {}
+  public single_play(_: unknown, context: WsContext): void {
+    console.log(1);
+    const game = this.gameService.startSinglePlayer(context.id);
+    context.send(createGameMessage(game.gameID, context.id));
+
+    const rooms = this.gameService.getRooms();
+    context.broadcast(updateRoomMessage(rooms));
+  }
 
   public create_room(_: unknown, context: WsContext): void {
     this.gameService.createRoom(context.id);
@@ -105,7 +116,6 @@ export class App implements WsController {
     context.broadcast(updateRoomMessage(rooms));
   }
 
-  // TODO: add bot Attack
   public add_ships(data: unknown, context: WsContext): void {
     const { gameId, ships, indexPlayer } = data as AddShipsPayload;
 
@@ -128,9 +138,9 @@ export class App implements WsController {
     });
 
     context.broadcast(turnMessage(currentPlayer), [currentPlayer, enemyPlayer]);
+    if (currentPlayer === BOT_ID) this.botAttack(gameId, context);
   }
 
-  // TODO: add bot Attack
   public attack(data: unknown, context: WsContext): void {
     const { gameId, x, y, indexPlayer } = data as AttackPayload;
 
@@ -138,6 +148,8 @@ export class App implements WsController {
     const { game, results } = this.gameService.attack(gameId, indexPlayer, position);
     context.broadcast(attackResultMessage(results), game.gamePlayers);
     context.broadcast(turnMessage(game.currentPlayer), game.gamePlayers);
+
+    if (game.gameStatus === GameStatus.Started && game.currentPlayer === BOT_ID) this.botAttack(gameId, context);
 
     if (!game.gameWinner) return undefined;
     context.broadcast(finishMessage(game.gameWinner), game.gamePlayers);
@@ -157,5 +169,12 @@ export class App implements WsController {
       direction: shipIsVertical,
       type: shipType,
     };
+  }
+
+  private botAttack(gameID: Game['id'], context: WsContext): void {
+    const timeout = randomInt(BOT_MIN_TIMEOUT, BOT_MAX_TIMEOUT);
+    setTimeout(() => {
+      this.randomAttack({ gameId: gameID, indexPlayer: BOT_ID }, context);
+    }, timeout);
   }
 }

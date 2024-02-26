@@ -1,16 +1,16 @@
 import { type Position } from './interfaces.js';
 
 export class Ship {
-  private readonly positions: Position[];
+  private positions: Position[];
 
-  private readonly aroundPositions: Position[];
+  private aroundPositions: Position[];
 
-  private readonly health: boolean[];
+  private health: boolean[];
 
   constructor(
-    private readonly position: Position,
+    private position: Position,
     private readonly length: number,
-    private readonly isVertical: boolean
+    private isVertical: boolean
   ) {
     this.positions = this.getPositions();
     this.aroundPositions = this.getAroundPositions();
@@ -19,6 +19,12 @@ export class Ship {
 
   public get shipPosition(): Position {
     return this.position;
+  }
+
+  public set shipPosition(position: Position) {
+    this.position = position;
+    this.positions = this.getPositions();
+    this.aroundPositions = this.getAroundPositions();
   }
 
   public get shipPositions(): Position[] {
@@ -35,6 +41,12 @@ export class Ship {
 
   public get shipIsVertical(): boolean {
     return this.isVertical;
+  }
+
+  public set shipIsVertical(isVertical: boolean) {
+    this.isVertical = isVertical;
+    this.positions = this.getPositions();
+    this.aroundPositions = this.getAroundPositions();
   }
 
   public getShot(position: Position): boolean {
